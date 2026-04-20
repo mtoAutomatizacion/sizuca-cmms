@@ -1631,7 +1631,13 @@ function confirmarEliminarDesdeEditar(){
 function ejecutarEliminar(){
   const idx = ordenes.findIndex(x => x.id === eliminarTarget);
   if(idx === -1){ closeModal('eliminar'); return; }
-  const id = ordenes[idx].id;
+  const o   = ordenes[idx];
+  const id  = o.id;
+
+  // Registrar huella para que no se regenere automáticamente
+  const fp = `${o.equipo}|${o.comp}|${o.act}|${o.freq}|${o.fecha}`;
+  _ordenesEliminadas.add(fp);
+
   ordenes.splice(idx, 1);
   closeModal('eliminar');
   actualizarCampana();
@@ -1714,6 +1720,9 @@ function recalcularEstados(){
   });
   return changes;
 }
+// Huellas de órdenes eliminadas — el motor nunca las recrea
+const _ordenesEliminadas = new Set();
+
 function generarSiguientesCiclos(){
   const nuevas = [];
   ordenes
@@ -1721,6 +1730,11 @@ function generarSiguientesCiclos(){
     .forEach(o => {
       const nextDate  = addDays(new Date(o.fecha), freqDays(o.freq));
       const nextFecha = fmtDate(nextDate);
+
+      // Si el usuario eliminó este ciclo explícitamente, no recrear
+      const fp = `${o.equipo}|${o.comp}|${o.act}|${o.freq}|${nextFecha}`;
+      if(_ordenesEliminadas.has(fp)) return;
+
       const yaExiste = ordenes.some(x =>
         x.equipo === o.equipo &&
         x.comp   === o.comp   &&
